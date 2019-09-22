@@ -1,0 +1,111 @@
+import datetime as dt
+import csv
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from hotel import Hotel
+from market import Market
+from revenue_managers import LeadRevenueManager, GammaRevenueManager
+
+# Beta simulation : loops only over lead time. Is tidier than alpha, less hard coded parameters and streamlined market.py and person.py
+
+###
+### Simulation of customers wanting to book hotel rooms. 
+###
+
+
+#@profile
+def run_simulation():
+
+    ###parameters
+    set_price=71 # sets average price shown by revenue manager
+    gamma = 20 # sets width of booking time distribution
+    average_number_of_potential_customers = 100
+    min_budget=30 
+    capacity = 76 # No. of rooms in hotel
+
+    ###Weights of price for month and day of week variation
+    month_prob = [0.75,0.8,0.95,0.9,1.,0.95,0.95,1.,1.,1.,1.1,1.2]
+    dow_prob = [1,1,1,1,1,1,0.7]
+    gamma_weights = [1.1,0.8,1.2,1.1,0.6,1.1,1.2,0.9,0.7,1.0,0.9,0.9]
+    gamma_weights_dow = [1.05,1.05,1.05,1.05,0.9,0.95,0.8]
+
+    ###Start/End date
+    start_reserved_night_date = dt.datetime(2018, 1, 1)
+    end_reserved_night_date = dt.datetime(2018, 12, 30)
+
+
+    ###Define Hotel. (Doesn't do much now, but in future will have multiple merchants/room types)
+    hotel = Hotel(merchant_id=1, capacities={10: capacity}, available_rooms=[10])
+    
+    #Initial prices for each DOW
+    prices = {
+        10: {0: set_price, 1: set_price, 2: set_price, 3: set_price, 4: set_price, 5: set_price, 6: set_price},
+    }
+    ###Open and write first line of output files
+    with open("transformed_data.csv", "w") as data:
+        writer = csv.writer(data, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(['hotelroom_id','reserved_night_date','booking_datetime','type','price'])
+    person_data=open("person_data.csv", "w")
+    pers_writer = csv.writer(person_data, delimiter=',', quotechar='"',quoting=csv.QUOTE_MINIMAL)
+    pers_writer.writerow(['booking_datetime','price'])
+    
+    ###Call revenue manager (currently very simple human like)
+    lead_rm = LeadRevenueManager(prices=prices, hotel=hotel, start_reserved_night_date=start_reserved_night_date,
+                           end_reserved_night_date=end_reserved_night_date)
+
+
+    start_date = start_reserved_night_date - dt.timedelta(days=gamma * 10)
+    end_date = end_reserved_night_date
+ 
+    ### initialise number of customers, budget and interested date
+    market = Market(start_date=start_date,
+        start_reserved_night_date=start_reserved_night_date,
+        end_reserved_night_date=end_reserved_night_date,
+        average_number_of_potential_customers=average_number_of_potential_customers,
+        minimum_budget_in_population=min_budget,gamma=gamma,gamma_weights_months=gamma_weights,
+gamma_weights_dow=gamma_weights_dow,month_prob=month_prob,dow_prob=dow_prob,capacity=capacity
+    )
+
+    ### iterate over lead time
+    for delta in range((end_date-start_date).days):
+        time = start_date + dt.timedelta(days=delta)
+        #print("Processing",time)
+
+        
+        RND = start_reserved_night_date + dt.timedelta(days=delta)
+        if RND<end_date:
+            
+            person_np = market._create_persons(RND,pers_writer)
+            if delta == 0:
+                person = person_np
+                
+            else:
+                person = np.vstack([person,person_np])
+        
+        where = (person[:,6]==delta)
+        lead_rm = market.generate_bookings_for_lead_time(lead_rm,person,time,where)
+        inv_where=np.invert(where)
+        person = person[inv_where]
+  
+    ###Output
+    bookings= np.array([[0,dt.datetime(2018,1,1),0]]*len(lead_rm._current_bookings))
+    bookings[:,0] = lead_rm._current_bookings[:,2]
+    bookings[:,1] = lead_rm._current_bookings[:,0]
+    bookings[:,2] = lead_rm._current_bookings[:,1]
+    df= pd.DataFrame(data=bookings)
+    df.columns=['hotelroom_id','reserved_night_date','units']
+    df.to_csv('transformed_room_nights.csv',index=False)
+    person_data.close()
+
+    ### Return total revenue
+    return lead_rm._revenue
+
+if __name__ == '__main__':
+    
+    rm_revs = []
+    for i in range(1):
+        print("Run: ", i)
+        rm_rev = run_simulation()
+        rm_revs.append(rm_rev)
+    print(rm_revs)
