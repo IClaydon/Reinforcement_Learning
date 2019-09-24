@@ -6,15 +6,15 @@ fatstest_simulation contains a simulation of a hotel booking environment, genera
 Compatible with python version >3.4 
 
 # # Requires
-'''bash
+'  ''bash
 pip install numpy
 pip install pandas
-'''
+' ' '
 
 # # Usage
-'''bash
+' ' 'bash
 python run_simulation.py
-'''
+' ' '
 
 
 # Reinforcement Learning
