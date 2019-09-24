@@ -5,13 +5,13 @@ Reproduction of the work done for Pace Revenue Management during an internship.
 fatstest_simulation contains a simulation of a hotel booking environment, generating customers who want to book at a hotel over one year. 
 Compatible with python version >3.4 
 
-##Requires
+# # Requires
 '''bash
 pip install numpy
 pip install pandas
 '''
 
-##Usage
+# # Usage
 '''bash
 python run_simulation.py
 '''
