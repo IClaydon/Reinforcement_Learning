@@ -20,7 +20,7 @@ python run_simulation.py
 # Reinforcement Learning
 
 reinforcement_learning contains two RL algorithms monte_carlo and sarsa(L). These are run in the same way as fastest_simulation, 
-but contains an RL agent which learns using epsilon-greedy algorithm.
+but contains an RL agent which learns using epsilon-greedy algorithm. Therefore revenue will increase each year simulated as the agent learns and increasingly picks the optimal action.
 
 Currently the output is not saved.
 
